@@ -126,7 +126,7 @@ RSpec.describe Shirinji::Resolver do
 
   describe '.resolve_class_bean' do
     let(:hacked_string) { double('string', constantize: klass) }
-    let(:bean) { double('class bean', class_name: hacked_string) }
+    let(:bean) { double('class bean', class_name: hacked_string, access: :instance, value: nil) }
 
     context 'constructor has no parameters' do
       let(:klass) { Class.new { def initialize; end } }
@@ -154,7 +154,7 @@ RSpec.describe Shirinji::Resolver do
 
         before do
           allow(resolver).to receive(:resolve_attribute).and_return(param_ref)
-          allow(resolver).to receive(:bean).and_return(random_instance)
+          allow(resolver).to receive(:resolve).and_return(random_instance)
         end
 
         it 'resolves constructor attributes references' do
@@ -164,7 +164,7 @@ RSpec.describe Shirinji::Resolver do
         end
 
         it 'resolves constructor attributes' do
-          expect(resolver).to receive(:bean).with(param_ref)
+          expect(resolver).to receive(:resolve).with(param_ref)
 
           resolver.send(:resolve_class_bean, bean)
         end
