@@ -2,9 +2,11 @@
 
 module Shirinji
   class Bean
-    attr_reader :name, :class_name, :value, :access, :attributes
+    attr_reader :name, :class_name, :value, :access, :attributes, :construct
 
-    def initialize(name, class_name: nil, value: nil, access:, &block)
+    def initialize(
+      name, class_name: nil, value: nil, access:, construct: true, &block
+    )
       check_params!(class_name, value)
 
       @name = name
@@ -12,6 +14,7 @@ module Shirinji
       @value = value
       @access = access
       @attributes = {}
+      @construct = construct
 
       instance_eval(&block) if block
     end

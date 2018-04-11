@@ -24,6 +24,11 @@ module Shirinji
       end
     end
 
+    def reload(map)
+      @map = map
+      reset_cache
+    end
+
     def reset_cache
       @singletons = {}
     end
@@ -40,6 +45,7 @@ module Shirinji
 
     def resolve_class_bean(bean)
       klass, params = resolve_class(bean)
+      return klass unless bean.construct
       return klass.new if params.empty?
 
       check_params!(params)

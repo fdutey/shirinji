@@ -18,15 +18,12 @@ module Shirinji
       instance_eval(&block) if block
     end
 
-    def bean(name, klass: nil, value: nil, access: :singleton, &block)
+    def bean(name, klass: nil, **others, &block)
       chunks = [mod, "#{klass}#{klass_suffix}"].compact
-      options = {
-        access: access,
-        klass: klass ? chunks.join('::') : nil,
-        value: value
-      }
+      options = others.merge(klass: klass ? chunks.join('::') : nil)
+      scoped_name = [prefix, name, suffix].compact.join('_')
 
-      parent.bean([prefix, name, suffix].compact.join('_'), **options, &block)
+      parent.bean(scoped_name, **options, &block)
     end
 
     def scope(**options, &block)

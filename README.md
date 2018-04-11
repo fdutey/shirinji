@@ -247,6 +247,32 @@ resolver.resolve(:sign_up_user_service)
 #=> <#SignUpUserService @publish_user_statistics_service=<#PublishUserStatisticsService ...> ...> 
 ```
 
+Shirinji provides scopes to help you organize your dependencies
+
+```ruby
+map = Shirinji::Map.new do
+  scope module: :Services, suffix: :service, klass_suffix: :Service do
+    scope module: :User, prefix: :user do
+      bean(:signup, klass: 'Signup')
+    end
+  end
+  
+  # is the same as
+  bean(:user_signup_service, klass: 'Services::User::SignupService') 
+end
+```
+
+If you need a dependency to return a class instead of an instance, you can disable
+the bean construction
+
+```ruby
+map = Shirinji::Map.new do
+  bean(:foo, klass: 'Foo', construct: false)
+end
+
+resolver.resolve(:foo) #=> Foo 
+```
+
 Shirinji also provide a caching mecanism to achieve singleton pattern without having to implement
 the pattern in your classes. It means the same class can be used as a singleton AND a regular class 
 at the same time without any code change.

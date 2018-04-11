@@ -126,53 +126,66 @@ RSpec.describe Shirinji::Resolver do
 
   describe '.resolve_class_bean' do
     let(:hacked_string) { double('string', constantize: klass) }
-    let(:bean) { double('class bean', class_name: hacked_string, access: :instance, value: nil) }
+    let(:bean) { double('class bean', class_name: hacked_string, access: :instance, construct: construct, value: nil) }
 
-    context 'constructor has no parameters' do
-      let(:klass) { Class.new { def initialize; end } }
+    context 'bean needs construction' do
+      let(:construct) { true }
 
-      it 'returns an instance of the given class' do
-        expect(resolver.send(:resolve_class_bean, bean).is_a?(klass)).to be_truthy
+      context 'constructor has no parameters' do
+        let(:klass) { Class.new { def initialize; end } }
+
+        it 'returns an instance of the given class' do
+          expect(resolver.send(:resolve_class_bean, bean)).to be_a(klass)
+        end
+      end
+
+      context 'constructor has parameters' do
+        context 'constructor has parameters that are not of "key" type' do
+          let(:klass) { Class.new { def initialize(a); end } }
+
+          it 'raise error' do
+            expect {
+              resolver.send(:resolve_class_bean, bean)
+            }.to raise_error(ArgumentError)
+          end
+        end
+
+        context 'constructor has only "key" type parameters' do
+          let(:klass) { Class.new { def initialize(a:); end } }
+          let(:random_instance) { double('param instance') }
+          let(:param_ref) { :foo }
+
+          before do
+            allow(resolver).to receive(:resolve_attribute).and_return(param_ref)
+            allow(resolver).to receive(:resolve).and_return(random_instance)
+          end
+
+          it 'resolves constructor attributes references' do
+            expect(resolver).to receive(:resolve_attribute).with(bean, :a)
+
+            resolver.send(:resolve_class_bean, bean)
+          end
+
+          it 'resolves constructor attributes' do
+            expect(resolver).to receive(:resolve).with(param_ref)
+
+            resolver.send(:resolve_class_bean, bean)
+          end
+
+          it 'returns an instance of the given class with parameters' do
+            expect(klass).to receive(:new).with(a: random_instance).and_call_original
+            expect(resolver.send(:resolve_class_bean, bean)).to be_a(klass)
+          end
+        end
       end
     end
 
-    context 'constructor has parameters' do
-      context 'constructor has parameters that are not of "key" type' do
-        let(:klass) { Class.new { def initialize(a); end } }
+    context 'bean does not need construct' do
+      let(:construct) { false }
+      let(:klass) { Class.new }
 
-        it 'raise error' do
-          expect {
-            resolver.send(:resolve_class_bean, bean)
-          }.to raise_error(ArgumentError)
-        end
-      end
-
-      context 'constructor has only "key" type parameters' do
-        let(:klass) { Class.new { def initialize(a:); end } }
-        let(:random_instance) { double('param instance') }
-        let(:param_ref) { :foo }
-
-        before do
-          allow(resolver).to receive(:resolve_attribute).and_return(param_ref)
-          allow(resolver).to receive(:resolve).and_return(random_instance)
-        end
-
-        it 'resolves constructor attributes references' do
-          expect(resolver).to receive(:resolve_attribute).with(bean, :a)
-
-          resolver.send(:resolve_class_bean, bean)
-        end
-
-        it 'resolves constructor attributes' do
-          expect(resolver).to receive(:resolve).with(param_ref)
-
-          resolver.send(:resolve_class_bean, bean)
-        end
-
-        it 'returns an instance of the given class with parameters' do
-          expect(klass).to receive(:new).with(a: random_instance).and_call_original
-          expect(resolver.send(:resolve_class_bean, bean).is_a?(klass)).to be_truthy
-        end
+      it 'returns the bean klass' do
+        expect(resolver.send(:resolve_class_bean, bean)).to eq(klass)
       end
     end
   end

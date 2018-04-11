@@ -48,19 +48,19 @@ module Shirinji
     # @param name [Symbol] the name you want to register your bean
     # @option [String] :klass the classname the bean is registering
     # @option [*] :value the object registered by the bean
+    # @option [Boolean] :construct whether the bean should be constructed or not
     # @option [Symbol] :access either :singleton or :instance.
     # @yield additional method to construct our bean
     # @raise [ArgumentError] if trying to register a bean that already exist
-    def bean(name, klass: nil, value: nil, access: :singleton, &block)
+    def bean(name, klass: nil, access: :singleton, **others, &block)
       name = name.to_sym
 
       raise_if_name_already_taken!(name)
 
-      options = {
+      options = others.merge(
         access: access,
-        class_name: klass ? klass.freeze : nil,
-        value: value
-      }
+        class_name: klass && klass.freeze
+      )
 
       beans[name] = Bean.new(name, **options, &block)
     end
