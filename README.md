@@ -1,288 +1,110 @@
 # Shirinji
 
-Container manager for dependency injection in Ruby.
+[![Build Status](https://travis-ci.org/fdutey/shirinji.svg?branch=master)](
+https://travis-ci.org/fdutey/shirinji
+)
+[![Maintainability](
+https://api.codeclimate.com/v1/badges/4b1c0010788d70581680/maintainability)
+](https://codeclimate.com/github/fdutey/shirinji/maintainability)
+
+Dependencies Injection made clean and easy for Ruby.
+
+## Supported ruby versions
+
+- 2.4.x
+- 2.5.x
 
 ## Principles
 
-Dependencies Injection is strongly connected with the IOC (inversion of controls) pattern. IOC is
-often seen as a "Java thing" and tend to be rejected by Ruby community.
+Remove hard dependencies between your objects and delegate object tree building
+to an unobtrusive framework with cool convention over configuration. 
 
-Yet, it's heavily used in javascript world and fit perfectly with prototyped language.
-
-```javascript
-function updateUI(evt) { /* ... */ }
-
-$.ajax('/action', { onSuccess: updateUI, ... })
-```
-
-A simple script like that is very common in Javascript and nobody is shocked by that. Yet, it's 
-using the IOC pattern. The `$.ajax` method is delegating the action to perform when the request 
-is successful to something else, focusing only on handling the http communication part.
-
-Dependencies injection is nothing more than the exact same principle but applied to objects instead 
-of functions.
-
-Let's follow an example step by step from "the rails way" to a proper way to understand it better.
+Shirinji relies on a mapping of beans and a resolver. When you resolve a bean,
+it will return (by default) an instance of the class associated to the bean,
+with all the bean dependencies resolved.
 
 ```ruby
-class User < ActiveRecord::Base
-  after_create :publish_statistics, :send_confirmation_email
+class FooService
+  attr_reader :bar_service
   
-  private
-  
-  def publish_statistics
-    StatisticsGateway.publish_event(:new_user, user.id)
+  def initialize(bar_service:)
+    @bar_service = bar_service
   end
   
-  def send_confirmation_email
-    UserMailer.confirm_email(user).deliver
-  end
-end
-```
-
-This is called "the rails way" and everybody with a tiny bit of experience knows that this way
-is not valid. Your model is gonna send statistics and emails each time it's saved, even when it's
-not in the context of signing up a new user (confusion between sign up, a business level operation 
-and create, a persistency level operation). There are plenty of situation where you actually don't
-want those operations to be performed (db seeding, imports, fixtures in tests ...)
-
-That's where services pattern comes to the rescue. Let's do it in a very simple fashion and just 
-move everything "as it is" in a service. 
-
-```ruby
-class SignUpUserService
-  def call(user)
-    user.signed_up_at = Time.now
-    user.save!
-    StatisticsGateway.publish_event(:new_user, user.id)
-    UserMailer.confirm_email(user).deliver  
+  def call(obj)
+    obj.foo = 123
+    
+    bar_service.call(obj)
   end
 end
 
-## test
-
-RSpec.describe SignUpUserService do
-  let(:service) { described_class.new }
-  
-  describe '.call' do
-    let(:message_instance) { double(deliver: nil) }
-    let(:user) { FactoryGirl.build_stubbed(:user, id: 1) }
-  
-    before do
-      allow(StatisticsGateway).to receive(:publish_event)
-      allow(UserMailer).to receive(:confirm_email).and_return(message_instance) 
-    end
-    
-    it 'saves user' do
-      expect(user).to receive(:save!)
-      
-      service.call(user)
-    end
-    
-    it 'sets signed up time' do
-      service.call(user)
-      expect(user.signed_up_at).to_not be_nil
-      # there are better ways to test that but we don't care here
-    end
-    
-    it 'publishes statistics' do
-      expect(StatisticsGateway).to receive(:publish_event).with(:new_user, 1)
-      
-      service.call(user)
-    end
-    
-    it 'notifies user for identity confirmation' do
-      expect(UserMailer).to receive(:confirm_email).with(user)
-      expect(message_instance).to receive(:deliver)
-      
-      service.call(user)
-    end
-  end  
-end
-```
-
-It's a bit better. Now when we want to write a user in DB, it's not acting as a signup regardless
-the context. It will act as a sign up only when we call SignUpService.
-
-Yet, if we look a the tests for this service, we have to mock `StatisticsGateway` and
-`UserMailer` in order for the test to run properly. It means that we need a very precise knowledge
-of the implementation, and we need to mock global static objects which can be a very big problem
-(for example, if the same class is called twice in very different contexts in the same method)
-
-Also, if we decide to switch our statistics solution, or if we decide to change the way we notify
-users for identity confirmation, our test for signing up a user will have to change. 
-It shouldn't. The way we sign up users should not change according to the solution we chose to 
-send emails. 
-
-This demonstrate that our object has too many responsibilities. If you want to write efficient, 
-fast, scalable, readable ... code, you should restrict your objects to one and only one responsbility.
-
-```ruby
-class SignUpUserService
-  def call(user)
-    user.signed_up_at = Time.now
-    user.save!
-    
-    PublishUserStatisticsService.new.call(user)
-    SendUserEmailConfirmationService.new.call(user)
-    # implementation omitted for those services, you can figure it out  
-  end
-end
-```
-
-Now, our service has fewer responsibilities BUT, testing will be even harder because mocking `new`
-method on both "sub services" will be even more dirty than before.
-We can solve this problem very easily
-
-```ruby
-class SignUpUserService
-  def call(user)
-    user.signed_up_at = Time.now
-    user.save!
-    
-    publish_user_statistics_service.call(user)
-    send_user_email_confirmation_service.call(user)
-  end
-    
-  private
-  
-  def publish_user_statistics_service
-    PublishUserStatisticsService.new
-  end
-  
-  def send_user_email_confirmation_service
-    SendUserEmailConfirmationService.new
-  end
-end
-
-## test
-
-RSpec.describe SignUpUserService do
-  let(:publish_statistics_service) { double(call: nil) }
-  let(:send_email_confirmation_service) { double(call: nil) }
-  
-  let(:service) { described_class.new }
-  
-  before do
-    allow(service).to receive(:publish_user_statistics_service).and_return(publish_statistics_service)
-    allow(service).to receive(:send_user_email_confirmation_service).and_return(send_email_confirmation_service)
-  end
-  
-  # ...
-end
-```
-
-Our tests are now much easier to write. They're also much faster because our test is very specialized
-and focus only on the service itself.
-But if you think about it, this service still has too many responsibilities. It still carrying the 
-responsibility of choosing which service will execute the "sub tasks" and more important, it's in
-charge of creating those services instances.
-
-Instead of having strong dependencies to other services, we can make them "weak" and increase our
-code flexibility if we want to reuse it in another project.
-
-```ruby
-class SignUpUserService
-  attr_reader :publish_user_statistics_service,
-              :send_user_email_confirmation_service
-              
-  def initialize(
-    publish_user_statistics_service:,
-    send_user_email_confirmation_service:, 
-  )
-    @publish_user_statistics_service = publish_user_statistics_service
-    @send_user_email_confirmation_service = send_user_email_confirmation_service
-  end
-
-  def call(user)
-    user.signed_up_at = Time.now
-    user.save!
-    
-    publish_user_statistics_service.call(user)
-    send_user_email_confirmation_service.call(user)
-  end
-end
-```
-
-Now our service is completely agnostic about which solution is used to perform the "sub tasks".
-It's the responsibility of it's environment to provide this information. 
-
-But in a real world example, building such a tree is a complete nightmare and impossible to
-maintain. It's where Shiringji comes to the rescue.  
-
-## Usage
-
-```ruby
 map = Shirinji::Map.new do
-  bean(:sign_up_user_service, klass: "SignUpUserService")
-  bean(:publish_user_statistics_service, klass: "PublishUserStatisticsService")
-  bean(:send_user_email_confirmation_service, klass: "SendUserEmailConfirmationService")
+  bean(:foo_service, klass: 'FooService')
+  bean(:bar_service, klass: 'BarService')
 end
 
 resolver = Shirinji::Resolver.new(map)
 
-resolver.resolve(:sign_up_user_service)
-#=> <#SignUpUserService @publish_user_statistics_service=<#PublishUserStatisticsService ...> ...> 
+resolver.resolve(:foo_service)
+# => <#FooService @bar_service=<#BarService>> 
 ```
 
-In this example, because `SingUpUserService` constructor parameters match beans with the same name,
-Shirinji will automatically resolve them. 
+## Constructor arguments
 
-In a case where a parameter name match no bean, it has to be mapped explicitly.
+Shirinji relies on constructor to inject dependencies. It's considering that
+objects that receive dependencies should be immutables and those dependencies
+should not change during your program lifecycle.
+
+Shirinji doesn't accept anything else than named parameters. This way,
+arguments order doesn't matter and it makes everybody's life easier. 
+
+## Name resolution
+
+By default, when you try to resolve a bean, Shirinji will look for a bean named 
+accordingly for each constructor parameter. 
+
+It's possible to locally override this behaviour though by using `attr` macro.
 
 ```ruby
+class FooService
+  attr_reader :bar_service
+  
+  def initialize(my_service:)
+    @bar_service = my_service
+  end
+end
+
 map = Shirinji::Map.new do
-  bean(:sign_up_user_service, klass: "SignUpUserService") do
-    attr :publish_user_statistics_service, ref: :user_publish_statistics_service
+  bean(:foo_service, klass: 'FooService') do
+    attr :my_service, ref: :bar_service
   end
   
-  # note the name is different
-  bean(:user_publish_statistics_service, klass: "PublishUserStatisticsService")
-  bean(:send_user_email_confirmation_service, klass: "SendUserEmailConfirmationService")
+  bean(:bar_service, klass: 'BarService')
 end
 
 resolver = Shirinji::Resolver.new(map)
 
-resolver.resolve(:sign_up_user_service)
-#=> <#SignUpUserService @publish_user_statistics_service=<#PublishUserStatisticsService ...> ...> 
+resolver.resolve(:foo_service)
+# => <#FooService @bar_service=<#BarService>>
 ```
 
-Shirinji provides scopes to help you organize your dependencies
+## Caching and singletons
 
-```ruby
-map = Shirinji::Map.new do
-  scope module: :Services, suffix: :service, klass_suffix: :Service do
-    scope module: :User, prefix: :user do
-      bean(:signup, klass: 'Signup')
-    end
-  end
-  
-  # is the same as
-  bean(:user_signup_service, klass: 'Services::User::SignupService') 
-end
-```
+Shirinji provides a caching mecanism to help you improve memory consumption.
+This cache is safe as long as your beans remains immutable (they should always
+be). 
 
-If you need a dependency to return a class instead of an instance, you can disable
-the bean construction
-
-```ruby
-map = Shirinji::Map.new do
-  bean(:foo, klass: 'Foo', construct: false)
-end
-
-resolver.resolve(:foo) #=> Foo 
-```
-
-Shirinji also provide a caching mecanism to achieve singleton pattern without having to implement
-the pattern in your classes. It means the same class can be used as a singleton AND a regular class 
-at the same time without any code change.
+The consequence is that any cached instance is actually a singleton. Singleton
+is no more a property of your class but of it's environment, improving the
+reusability of your code. 
 
 Singleton is the default access mode for a bean.
 
 ```ruby
 map = Shirinji::Map.new do
-  bean(:foo, klass: 'Foo', access: :singleton) # foo is singleton
-  bean(:bar, klass: 'Bar', access: :instance) # bar is not
+  bean(:bar_service, klass: 'BarService', access: :instance)
+  bean(:foo_service, klass: 'FooService', access: :singleton)
+  # same as bean(:foo_service, klass: 'FooService')
 end
 
 resolver = Shirinji::Resolver.new(map)
@@ -294,18 +116,29 @@ resolver.resolve(:bar).object_id #=> 2
 resolver.resolve(:bar).object_id #=> 3 
 ```
 
-You can also create beans that contain single values. It will help you to avoid referencing global 
-variables in your code.
+Cache can be reset with the simple command `resolver.reset_cache`, which can be
+useful when using a development console like rails console ([shirinji-rails](
+https://github.com/fdutey/shirinji-rails) is attaching cache reset to `reload!` 
+command).
+
+## Other type of beans
+
+Dependencies injection doesn't apply only to classes. You can actually inject
+anything and therefore, Shirinji allows you to declare anything as a dependency.
+To achieve that, use the key `value` instead of `class`.
 
 ```ruby
-map = Shirinji::Map.new do
-  bean(:config, value: Proc.new { Application.config })
-  bean(:foo, klass: 'Foo')
+module MyApp
+  def self.config
+    @config
+  end
+  
+  def self.load!
+    @config = OpenStruct.new  
+  end
 end
 
-resolver = Shirinji::Resolver.new(map)
-
-class Foo
+class FooService
   attr_reader :config
   
   def initialize(config:)
@@ -313,21 +146,73 @@ class Foo
   end
 end
 
-resolver.resolve(:foo)
-#=> <#Foo @config=<#OpenStruct ...> ...>
+MyApp.load!
+
+map = Shirinji::Map.new do
+  bean(:config, value: Proc.new { MyApp.config })
+  
+  bean(:foo_service, klass: 'FooService')
+end
+
+resolver = Shirinji::Resolver.new(map)
+
+resolver.resolve(:foo_service)
+#=> <#FooService @config=<#OpenStruct ...> ...>
 ```
 
-Values can be anything. A `Proc` will be lazily evaluated. They also obey the singleton / instance
-strategy.
+A value can be anything. `Proc` will be lazily evaluated. It also obeys the 
+cache mechanism described before.
+
+## Skip construction mechanism
+
+In some cases, you need a dependency to be injected as a class and not an 
+instance. In such case, you could use value beans, returning the class itself, 
+but you would lose the benefit of scopes (see below). 
+Instead, Shirinji provides a parameter to skip the object construction.
+
+A real life example is a Job where `deliver_now` and `deliver_later` are 
+class methods.
+
+```ruby
+map = Shirinji::Map.new do
+  bean(:foo_job, klass: 'FooJob', construct: false)
+end
+
+resolver = Shirinji::Resolver.new(map)
+
+resolver.resolve(:foo_job) #=> FooJob
+```
+
+## Scopes
+
+Building complex objects mapping leads to lot of repetition. That's why Shirinji 
+also provides a scope mechanism to help you dry your code.
+
+```ruby
+map = Shirinji::Map.new do
+  scope module: :Services, suffix: :service, klass_suffix: :Service do
+    bean(:foo, klass: 'Foo')
+    # same as bean(:foo_service, klass: 'Services::FooService')
+    
+    scope module: :User, prefix: :user do
+      bean(:bar, klass: 'Bar')
+      # same as bean(:user_bar_service, klass: 'Services::User::BarService')
+    end 
+  end
+end
+```
+
+Scopes do not carry (yet?) properties like `access` nor `construct`.
 
 ## Notes
 
-- It is absolutely mandatory for your beans to be stateless to use the singleton mode. If they're
-  not, you will probably run into trouble as your objects behavior will depend on their history, leading
-  to unpredictable effects.
-- Shirinji only works with named arguments. It will raise errors if you try to use it with "standard"
-  method arguments.
+- It is absolutely mandatory for your beans to be stateless to use the singleton 
+  mode. If they're not, you will probably run into trouble as your objects 
+  behavior will depend on their history, leading to unpredictable effects.
+- Shirinji only works with named arguments. It will raise `ArgumentError` if you 
+  try to use it with "standard" method arguments.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/fdutey/shirinji.
+Bug reports and pull requests are welcome on GitHub at 
+https://github.com/fdutey/shirinji.
