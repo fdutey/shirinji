@@ -1,5 +1,8 @@
 # Shirinji
 
+[![Gem Version](https://badge.fury.io/rb/shirinji.svg)](
+https://badge.fury.io/rb/shirinji
+)
 [![Build Status](https://travis-ci.org/fdutey/shirinji.svg?branch=master)](
 https://travis-ci.org/fdutey/shirinji
 )
