@@ -35,6 +35,7 @@ module Shirinji
     def validate_options(args)
       args.each_key do |k|
         next if Shirinji::Scope::VALID_OPTIONS.include?(k)
+
         raise ArgumentError, "Unknown key #{k}"
       end
     end

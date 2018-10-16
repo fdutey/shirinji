@@ -8,3 +8,6 @@ Metrics/BlockLength:
 
 Style/BlockDelimiters:
   Enabled: false
+
+Naming/UncommunicativeMethodParamName:
+  Enabled: false

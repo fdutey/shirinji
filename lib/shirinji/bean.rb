@@ -4,6 +4,7 @@ module Shirinji
   class Bean
     attr_reader :name, :class_name, :value, :access, :attributes, :construct
 
+    # rubocop:disable Metrics/ParameterLists
     def initialize(
       name, class_name: nil, value: nil, access:, construct: true, &block
     )
@@ -18,6 +19,7 @@ module Shirinji
 
       instance_eval(&block) if block
     end
+    # rubocop:enable Metrics/ParameterLists
 
     def attr(name, ref:)
       attributes[name] = Attribute.new(name, ref)

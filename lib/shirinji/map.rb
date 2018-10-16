@@ -26,6 +26,7 @@ module Shirinji
     def get(name)
       bean = beans[name.to_sym]
       raise ArgumentError, "Unknown bean #{name}" unless bean
+
       bean
     end
 
@@ -59,7 +60,7 @@ module Shirinji
 
       options = others.merge(
         access: access,
-        class_name: klass && klass.freeze
+        class_name: klass&.freeze
       )
 
       beans[name] = Bean.new(name, **options, &block)
@@ -122,6 +123,7 @@ module Shirinji
 
     def raise_if_name_already_taken!(name)
       return unless beans[name]
+
       msg = "A bean already exists with the following name: #{name}"
       raise ArgumentError, msg
     end

@@ -71,6 +71,7 @@ module Shirinji
     def check_params!(params)
       params.each do |pair|
         next if ARG_TYPES.include?(pair.first)
+
         raise ArgumentError, 'Only key arguments are allowed'
       end
     end
