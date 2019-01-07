@@ -16,6 +16,7 @@ Dependencies Injection made clean and easy for Ruby.
 
 - 2.4.x
 - 2.5.x
+- 2.6.x
 
 ## Principles
 
@@ -50,6 +51,26 @@ resolver = Shirinji::Resolver.new(map)
 
 resolver.resolve(:foo_service)
 # => <#FooService @bar_service=<#BarService>> 
+```
+
+Shirinji is unobtrusive. Basically, any of your objects can be used 
+outside of its context.
+
+```ruby
+bar_service = BarService.new
+foo_service = FooService.new(bar_service: bar_service)
+# => <#FooService @bar_service=<#BarService>>
+
+# tests
+
+RSpec.describe FooService do
+  let(:bar_service) { double(call: nil) }
+  let(:service) { described_class.new(bar_service: bar_service) }
+  
+  describe '.call' do
+    # ...
+  end
+end
 ```
 
 ## Constructor arguments
