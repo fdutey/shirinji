@@ -4,10 +4,34 @@ module Shirinji
   class Map
     attr_reader :beans
 
+    # Loads a map at a given location
+    #
+    # @param location [string] path to the map to load
+    def self.load(location)
+      eval(File.read(location))
+    end
+
     def initialize(&block)
       @beans = {}
 
-      instance_eval(&block)
+      instance_eval(&block) if block
+    end
+
+    # Merges another map at a given location
+    #
+    # @param location [string] the file to include - must be an absolute path
+    def include_map(location)
+      merge(self.class.load(location))
+    end
+
+    # Merges a map into another one
+    #
+    # @param map [Shirinji::Map] the map to merge into this one
+    # @raise [ArgumentError] if both map contains a bean with the same bean
+    def merge(map)
+      map.beans.keys.each { |name| raise_if_name_already_taken!(name) }
+
+      beans.merge!(map.beans)
     end
 
     # Returns a bean based on its name
@@ -48,7 +72,7 @@ module Shirinji
     #
     # @param name [Symbol] the name you want to register your bean
     # @option [String] :klass the classname the bean is registering
-    # @option [*] :value the object registered by the bean
+    # @option [Object] :value the object registered by the bean
     # @option [Boolean] :construct whether the bean should be constructed or not
     # @option [Symbol] :access either :singleton or :instance.
     # @yield additional method to construct our bean
