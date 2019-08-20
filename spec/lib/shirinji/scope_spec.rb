@@ -8,8 +8,18 @@ RSpec.describe Shirinji::Scope do
   let(:prefix) { nil }
   let(:suffix) { nil }
   let(:ks) { nil }
+  let(:ak) { false }
 
-  let(:scope) { described_class.new(parent, module: mod, prefix: prefix, suffix: suffix, klass_suffix: ks) }
+  let(:scope) do
+    described_class.new(
+      parent,
+      module: mod,
+      prefix: prefix,
+      suffix: suffix,
+      klass_suffix: ks,
+      auto_klass: ak
+    )
+  end
 
   describe '.bean' do
     context 'with prefix' do
@@ -49,6 +59,16 @@ RSpec.describe Shirinji::Scope do
         expect(parent).to receive(:bean).with('foo', klass: 'Services::Signup')
 
         scope.bean('foo', klass: 'Signup')
+      end
+    end
+
+    context 'with auto klass' do
+      let(:ak) { true }
+
+      it 'generates klass name' do
+        expect(parent).to receive(:bean).with('foo_bar', klass: 'FooBar')
+
+        scope.bean('foo_bar')
       end
     end
   end
