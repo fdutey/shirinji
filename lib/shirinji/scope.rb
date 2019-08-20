@@ -20,7 +20,8 @@ module Shirinji
     end
 
     def bean(name, klass: nil, **options, &block)
-      klass ||= camelcase(name) if !options[:value] && auto_klass
+      klass ||= klassify(name) if !options[:value] && auto_klass
+
       chunks = [mod, "#{klass}#{klass_suffix}"].compact
       options = options.merge(klass: klass ? chunks.join('::') : nil)
 
@@ -37,14 +38,8 @@ module Shirinji
 
     private
 
-    def camelcase(str)
-      chunks = str.to_s.split('_').map do |w|
-        w = w.downcase
-        w[0] = w[0].upcase
-        w
-      end
-
-      chunks.join
+    def klassify(name)
+      Shirinji::Utils::String.camelcase(name)
     end
 
     def validate_options(args)
