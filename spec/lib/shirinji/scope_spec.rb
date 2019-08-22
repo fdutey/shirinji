@@ -80,7 +80,7 @@ RSpec.describe Shirinji::Scope do
       let(:construct) { false }
 
       it 'sets bean to construct false' do
-        expect(parent).to receive(:bean).with('foo', construct: false, klass: nil)
+        expect(parent).to receive(:bean).with('foo', construct: false)
 
         scope.bean('foo')
       end
@@ -91,7 +91,7 @@ RSpec.describe Shirinji::Scope do
       let(:mod) { 'UserProfile' }
 
       it 'sets prefix' do
-        expect(parent).to receive(:bean).with('user_profile_foo', klass: nil)
+        expect(parent).to receive(:bean).with('user_profile_foo', {})
 
         scope.bean('foo')
       end

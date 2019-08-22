@@ -18,23 +18,18 @@ module Shirinji
       @klass_suffix = options[:klass_suffix]
       @auto_klass = options[:auto_klass]
       @auto_prefix = options[:auto_prefix]
-      @prefix = options[:prefix] || (@auto_prefix && @mod && underscore(@mod.to_s).to_sym)
+      @prefix = generate_prefix(options[:prefix])
       @construct = options.fetch(:construct, true)
 
       instance_eval(&block) if block
     end
 
     def bean(name, klass: nil, **options, &block)
-      default_opts = { construct: construct }.reject { |_,v| v.nil? }
-      klass ||= klassify(name) if !options[:value] && auto_klass
+      default_opts = compact({ construct: construct })
 
-      chunks = [mod, "#{klass}#{klass_suffix}"].compact
-
-      options = default_opts.merge(options).merge(
-        klass: klass ? chunks.join('::') : nil
-      )
-
-      scoped_name = [prefix, name, suffix].compact.join('_')
+      klass = generate_klass(name, klass) unless options[:value]
+      options = compact(default_opts.merge(options).merge(klass: klass))
+      scoped_name = generate_scope(name)
 
       parent.bean(scoped_name, **options, &block)
     end
@@ -50,6 +45,30 @@ module Shirinji
     end
 
     private
+
+    def compact(h)
+      h.reject { |_,v| v.nil? }
+    end
+
+    def generate_scope(name)
+      [prefix, name, suffix].compact.join('_')
+    end
+
+    def generate_klass(name, klass)
+      return if !klass && !auto_klass
+
+      klass ||= klassify(name)
+      chunks = [mod, "#{klass}#{klass_suffix}"].compact
+
+      chunks.join('::')
+    end
+
+    def generate_prefix(prefix)
+      return prefix if prefix
+      return nil unless auto_prefix
+
+      mod && underscore(mod.to_s).to_sym
+    end
 
     def klassify(name)
       Shirinji::Utils::String.camelcase(name)
