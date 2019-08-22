@@ -138,6 +138,9 @@ module Shirinji
     # @option options [Symbol] :prefix prepend prefix to bean name
     # @option options [Symbol] :suffix append suffix to bean name
     # @option options [Symbol] :klass_suffix append suffix to class name
+    # @option options [Boolean] :auto_klass generates klass from name
+    # @option options [Boolean] :auto_prefix generates prefix from module
+    # @option options [Boolean] :construct applies `construct` on every bean
     # @yield a standard map
     def scope(**options, &block)
       Scope.new(self, **options, &block)
