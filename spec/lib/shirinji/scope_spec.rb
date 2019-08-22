@@ -9,6 +9,7 @@ RSpec.describe Shirinji::Scope do
   let(:suffix) { nil }
   let(:ks) { nil }
   let(:ak) { false }
+  let(:construct) { nil }
 
   let(:scope) do
     described_class.new(
@@ -17,7 +18,8 @@ RSpec.describe Shirinji::Scope do
       prefix: prefix,
       suffix: suffix,
       klass_suffix: ks,
-      auto_klass: ak
+      auto_klass: ak,
+      construct: construct
     )
   end
 
@@ -69,6 +71,16 @@ RSpec.describe Shirinji::Scope do
         expect(parent).to receive(:bean).with('foo_bar', klass: 'FooBar')
 
         scope.bean('foo_bar')
+      end
+    end
+
+    context 'with construct' do
+      let(:construct) { false }
+
+      it 'sets bean to construct false' do
+        expect(parent).to receive(:bean).with('foo', construct: false, klass: nil)
+
+        scope.bean('foo')
       end
     end
   end
