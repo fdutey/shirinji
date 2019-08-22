@@ -9,6 +9,7 @@ RSpec.describe Shirinji::Scope do
   let(:suffix) { nil }
   let(:ks) { nil }
   let(:ak) { false }
+  let(:ap) { nil }
   let(:construct) { nil }
 
   let(:scope) do
@@ -19,6 +20,7 @@ RSpec.describe Shirinji::Scope do
       suffix: suffix,
       klass_suffix: ks,
       auto_klass: ak,
+      auto_prefix: ap,
       construct: construct
     )
   end
@@ -79,6 +81,17 @@ RSpec.describe Shirinji::Scope do
 
       it 'sets bean to construct false' do
         expect(parent).to receive(:bean).with('foo', construct: false, klass: nil)
+
+        scope.bean('foo')
+      end
+    end
+
+    context 'with auto prefix' do
+      let(:ap) { true }
+      let(:mod) { 'UserProfile' }
+
+      it 'sets prefix' do
+        expect(parent).to receive(:bean).with('user_profile_foo', klass: nil)
 
         scope.bean('foo')
       end

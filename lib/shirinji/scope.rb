@@ -3,21 +3,22 @@
 module Shirinji
   class Scope
     VALID_OPTIONS = %i[
-      module prefix suffix klass_suffix auto_klass construct
+      module prefix suffix klass_suffix auto_klass auto_prefix construct
     ].freeze
 
     attr_reader :parent, :mod, :prefix, :suffix, :klass_suffix, :auto_klass,
-                :construct
+                :construct, :auto_prefix
 
     def initialize(parent, **options, &block)
       validate_options(options)
 
       @parent = parent
       @mod = options[:module]
-      @prefix = options[:prefix]
       @suffix = options[:suffix]
       @klass_suffix = options[:klass_suffix]
       @auto_klass = options[:auto_klass]
+      @auto_prefix = options[:auto_prefix]
+      @prefix = options[:prefix] || (@auto_prefix && @mod && underscore(@mod.to_s).to_sym)
       @construct = options.fetch(:construct, true)
 
       instance_eval(&block) if block
@@ -41,6 +42,7 @@ module Shirinji
     def scope(**options, &block)
       opts = {
         auto_klass: auto_klass,
+        auto_prefix: auto_prefix,
         construct: construct
       }.merge(options)
 
@@ -51,6 +53,10 @@ module Shirinji
 
     def klassify(name)
       Shirinji::Utils::String.camelcase(name)
+    end
+
+    def underscore(name)
+      Shirinji::Utils::String.snakecase(name)
     end
 
     def validate_options(args)
