@@ -226,7 +226,96 @@ map = Shirinji::Map.new do
 end
 ```
 
-Scopes do not carry (yet?) properties like `access` nor `construct`.
+Scopes also come with an `auto_klass` attribute to save even more time for 
+common cases
+
+```ruby
+map = Shirinji::Map.new do
+  scope module: :Services, 
+        suffix: :service, 
+        klass_suffix: :Service, 
+        auto_klass: true do
+    bean(:foo)
+    # same as bean(:foo_service, klass: 'Services::FooService')
+  end
+end
+```
+
+Scopes also provides an `auto_prefix` option
+
+```ruby
+map = Shirinji::Map.new do
+  scope module: :Services, 
+        suffix: :service, 
+        klass_suffix: :Service, 
+        auto_klass: true do
+        
+    # Do not use auto prefix on root scope or every bean will be prefixed
+    # with `services_`
+    scope auto_prefix: true do
+      bean(:foo)
+      # same as bean(:foo_service, klass: 'Services::FooService')
+      
+      scope module: :User do
+        # same as scope module: :User, prefix: :user
+  
+        bean(:bar)
+        # same as bean(:user_bar_service, klass: 'Services::User::BarService')
+      end
+    end
+  end
+end
+```
+
+Finally, for mailers / jobs ..., Scopes allow you to specify a global value
+for `construct`
+
+```ruby
+map = Shirinji::Map.new do
+  scope module: :Jobs, 
+        suffix: :job, 
+        klass_suffix: :Job, 
+        auto_klass: true, 
+        construct: false do
+    bean(:foo)
+    # bean(:foo_job, klass: 'Jobs::FooJob', construct: false)
+  end
+end
+```
+
+Scopes do not carry property `access`
+
+## Code splitting
+
+When a project grows, dependencies grows too. Keeping them into one single file
+leads to headaches. One possible solution to keep everything under control is
+to split your dependencies into many files.
+
+To include a "sub-map" into another one, you can use `include_map` method.
+
+```ruby
+# dependencies/services.rb
+Shirinji::Map.new do
+  bean(:foo_service, klass: 'FooService')
+end
+
+# dependencies/queries.rb
+Shirinji::Map.new do
+  bean(:foo_query, klass: 'FooQuery')
+end
+
+# dependencies.rb
+
+root = Pathname.new(File.expand_path('../dependencies', __FILE__))
+
+Shirinji::Map.new do
+  bean(:config, value: -> { MyApp.config })
+  
+  # paths must be absolute 
+  include_map(root.join('queries.rb'))
+  include_map(root.join('services.rb'))
+end
+```
 
 ## Notes
 
@@ -235,6 +324,10 @@ Scopes do not carry (yet?) properties like `access` nor `construct`.
   behavior will depend on their history, leading to unpredictable effects.
 - Shirinji only works with named arguments. It will raise `ArgumentError` if you 
   try to use it with "standard" method arguments.
+  
+## TODOS
+
+- solve absolute paths problems for `include_map` (`instance_eval` is a problem)
 
 ## Contributing
 
