@@ -153,11 +153,9 @@ RSpec.describe Shirinji::Resolver do
         context 'constructor has only "key" type parameters' do
           let(:klass) { Class.new { def initialize(a:); end } }
           let(:random_instance) { double('param instance') }
-          let(:param_ref) { :foo }
 
           before do
-            allow(resolver).to receive(:resolve_attribute).and_return(param_ref)
-            allow(resolver).to receive(:resolve).and_return(random_instance)
+            allow(resolver).to receive(:resolve_attribute).and_return(random_instance)
           end
 
           it 'resolves constructor attributes references' do
@@ -166,14 +164,9 @@ RSpec.describe Shirinji::Resolver do
             resolver.send(:resolve_class_bean, bean)
           end
 
-          it 'resolves constructor attributes' do
-            expect(resolver).to receive(:resolve).with(param_ref)
-
-            resolver.send(:resolve_class_bean, bean)
-          end
-
           it 'returns an instance of the given class with parameters' do
             expect(klass).to receive(:new).with(a: random_instance).and_call_original
+
             expect(resolver.send(:resolve_class_bean, bean)).to be_a(klass)
           end
         end
@@ -191,12 +184,32 @@ RSpec.describe Shirinji::Resolver do
   end
 
   describe '.resolve_attribute' do
-    context 'bean has aliased attributes' do
-      let(:attr) { double('attr', reference: :bar) }
+    context 'bean has value' do
+      let(:attr) { double('attr', value: 1) }
       let(:bean) { double('bean', attributes: { foo: attr }) }
 
+      it 'resolves attribute as value' do
+        expect(resolver.send(:resolve_attribute, bean, :foo)).to eq(1)
+      end
+    end
+
+    context 'bean has aliased attributes' do
+      let(:attr) { double('attr', reference: :bar, value: nil) }
+      let(:bean) { double('bean', attributes: { foo: attr }) }
+      let(:aliased_bean) { double('aliased_bean') }
+
+      before do
+        allow(resolver).to receive(:resolve).and_return(aliased_bean)
+      end
+
       it 'resolves a given attribute into its alias' do
-        expect(resolver.send(:resolve_attribute, bean, :foo)).to eq(:bar)
+        expect(resolver).to receive(:resolve).once.with(:bar)
+
+        resolver.send(:resolve_attribute, bean, :foo)
+      end
+
+      it 'returns aliased bean' do
+        expect(resolver.send(:resolve_attribute, bean, :foo)).to eq(aliased_bean)
       end
     end
 

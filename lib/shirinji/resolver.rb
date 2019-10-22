@@ -51,7 +51,7 @@ module Shirinji
       check_params!(params)
 
       args = params.each_with_object({}) do |(_type, arg), memo|
-        memo[arg] = resolve(resolve_attribute(bean, arg))
+        memo[arg] = resolve_attribute(bean, arg)
       end
 
       klass.new(**args)
@@ -65,7 +65,10 @@ module Shirinji
     end
 
     def resolve_attribute(bean, arg)
-      (attr = bean.attributes[arg]) ? attr.reference : arg
+      return arg unless (attr = bean.attributes[arg])
+      return attr.value if attr.value
+
+      resolve(attr.reference)
     end
 
     def check_params!(params)

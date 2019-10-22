@@ -21,8 +21,8 @@ module Shirinji
     end
     # rubocop:enable Metrics/ParameterLists
 
-    def attr(name, ref:)
-      attributes[name] = Attribute.new(name, ref)
+    def attr(name, ref: nil, value: nil)
+      attributes[name] = Attribute.new(name, ref, value)
     end
 
     private
