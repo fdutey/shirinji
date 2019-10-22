@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    shirinji (0.0.4)
+    shirinji (0.0.5)
 
 GEM
   remote: https://rubygems.org/
