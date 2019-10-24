@@ -65,7 +65,7 @@ module Shirinji
     end
 
     def resolve_attribute(bean, arg)
-      return arg unless (attr = bean.attributes[arg])
+      return resolve(arg) unless (attr = bean.attributes[arg])
       return attr.value if attr.value
 
       resolve(attr.reference)

@@ -215,9 +215,20 @@ RSpec.describe Shirinji::Resolver do
 
     context 'bean has no aliased attribute' do
       let(:bean) { double('bean', attributes: {}) }
+      let(:resolved_bean) { double('resolved_bean', attributes: {}) }
 
-      it 'resolves a given attribute into itself' do
-        expect(resolver.send(:resolve_attribute, bean, :foo)).to eq(:foo)
+      before do
+        allow(resolver).to receive(:resolve).and_return(resolved_bean)
+      end
+
+      it 'resolves bean' do
+        expect(resolver).to receive(:resolve).once.with(:foo)
+
+        resolver.send(:resolve_attribute, bean, :foo)
+      end
+
+      it 'returns resolved bean' do
+        expect(resolver.send(:resolve_attribute, bean, :foo)).to eq(resolved_bean)
       end
     end
   end
