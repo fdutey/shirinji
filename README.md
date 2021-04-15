@@ -14,9 +14,6 @@ Dependencies Injection made clean and easy for Ruby.
 
 ## Supported ruby versions
 
-- 2.4.x
-- 2.5.x
-- 2.6.x
 - 2.7.x
 - 3.0.x
 
