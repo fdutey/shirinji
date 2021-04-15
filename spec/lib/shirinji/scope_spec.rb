@@ -91,7 +91,7 @@ RSpec.describe Shirinji::Scope do
       let(:mod) { 'UserProfile' }
 
       it 'sets prefix' do
-        expect(parent).to receive(:bean).with('user_profile_foo', {})
+        expect(parent).to receive(:bean).with('user_profile_foo')
 
         scope.bean('foo')
       end

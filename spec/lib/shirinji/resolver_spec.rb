@@ -146,12 +146,12 @@ RSpec.describe Shirinji::Resolver do
           it 'raise error' do
             expect {
               resolver.send(:resolve_class_bean, bean)
-            }.to raise_error(ArgumentError)
+            }.to raise_error(ArgumentError, 'Only key arguments are allowed')
           end
         end
 
         context 'constructor has only "key" type parameters' do
-          let(:klass) { Class.new { def initialize(a:); end } }
+          let(:klass) { Class.new { attr_reader :a; def initialize(a:); @a = a; end } }
           let(:random_instance) { double('param instance') }
 
           before do
@@ -164,9 +164,13 @@ RSpec.describe Shirinji::Resolver do
             resolver.send(:resolve_class_bean, bean)
           end
 
-          it 'returns an instance of the given class with parameters' do
-            expect(klass).to receive(:new).with(a: random_instance).and_call_original
+          it 'sends params to the constructor' do
+            expect(klass).to receive(:new).with(a: random_instance)
 
+            resolver.send(:resolve_class_bean, bean)
+          end
+
+          it 'returns an instance of the given class with parameters' do
             expect(resolver.send(:resolve_class_bean, bean)).to be_a(klass)
           end
         end
