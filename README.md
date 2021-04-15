@@ -17,6 +17,8 @@ Dependencies Injection made clean and easy for Ruby.
 - 2.4.x
 - 2.5.x
 - 2.6.x
+- 2.7.x
+- 3.0.x
 
 ## Principles
 
@@ -133,11 +135,11 @@ end
 
 resolver = Shirinji::Resolver.new(map)
 
-resolver.resolve(:foo).object_id #=> 1
-resolver.resolve(:foo).object_id #=> 1
+resolver.resolve(:foo_service).object_id #=> 1
+resolver.resolve(:foo_service).object_id #=> 1
 
-resolver.resolve(:bar).object_id #=> 2 
-resolver.resolve(:bar).object_id #=> 3 
+resolver.resolve(:bar_service).object_id #=> 2 
+resolver.resolve(:bar_service).object_id #=> 3 
 ```
 
 Cache can be reset with the simple command `resolver.reset_cache`, which can be
