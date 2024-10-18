@@ -189,11 +189,22 @@ RSpec.describe Shirinji::Resolver do
 
   describe '.resolve_attribute' do
     context 'bean has value' do
-      let(:attr) { double('attr', value: 1) }
       let(:bean) { double('bean', attributes: { foo: attr }) }
 
-      it 'resolves attribute as value' do
-        expect(resolver.send(:resolve_attribute, bean, :foo)).to eq(1)
+      context 'when value is not a proc' do
+        let(:attr) { double('attr', value: 1) }
+
+        it 'resolves attribute as value' do
+          expect(resolver.send(:resolve_attribute, bean, :foo)).to eq(1)
+        end
+      end
+
+      context 'when value is a proc' do
+        let(:attr) { double('attr', value: Proc.new { false }) }
+
+        it 'resolves attribute as return value of Proc' do
+          expect(resolver.send(:resolve_attribute, bean, :foo)).to eq(false)
+        end
       end
     end
 

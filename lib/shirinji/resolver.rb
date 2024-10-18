@@ -66,7 +66,8 @@ module Shirinji
 
     def resolve_attribute(bean, arg)
       return resolve(arg) unless (attr = bean.attributes[arg])
-      return attr.value if attr.value
+      val = attr.value
+      return val.is_a?(Proc) ? val.call : val if val
 
       resolve(attr.reference)
     end
